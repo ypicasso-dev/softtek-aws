@@ -1,0 +1,88 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Resources:
+  GetCharactersFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lambdas/getCharacters/
+      Handler: index.handler
+      Runtime: nodejs20.x
+      Environment:
+        Variables:
+          CACHE_TABLE: cache_info
+          CACHE_TTL_SECONDS: 60
+          DYNAMO_TABLE_NAME: personajes
+          LOG_GROUP_NAME: /aws/lambda/getCharacters
+          LOG_LEVEL: INFO
+          REDIS_HOST: redis-softtek-fnydcu.serverless.use2.cache.amazonaws.com
+          REDIS_PASSWORD: 
+          REDIS_PORT: 6379
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            Path: /getCharacters
+            Method: get
+            Auth:
+              Authorizer: CognitoAuthorizer
+  # Similar configuración para createCharacter y listCharacters
+  
+  ListCharactersFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lambdas/getHistory/
+      Handler: index.handler
+      Runtime: nodejs20.x
+      Environment:
+        Variables:
+          DYNAMO_TABLE_NAME: personajes
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            Path: /getHistory
+            Method: get
+            Auth:
+              Authorizer: CognitoAuthorizer
+  
+  CreateCharactersFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lambdas/registerPokemon/
+      Handler: index.handler
+      Runtime: nodejs20.x
+      Environment:
+        Variables:
+          TABLE_NAME: personajes
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            Path: /saveCharacter
+            Method: post
+            Auth:
+              Authorizer: CognitoAuthorizer
+
+  StarWarsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: personajes
+      AttributeDefinitions:
+        - AttributeName: name
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: S # HASH
+      # BillingMode: PAY_PER_REQUEST
+
+  CognitoAuthorizer:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: StarWarsApi
+      StageName: prod
+      Auth:
+        DefaultAuthorizer: CognitoAuthorizer
+        AddDefaultAuthorizerToCorsPreflight: false
+        Authorizers:
+          CognitoAuthorizer:
+            UserPoolArn: arn:aws:cognito-idp:us-east-2:798933442606:userpool/<user-pool-id>
